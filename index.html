@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stock Market Expense Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --surface-2: #ebe9e0;
+    --border: #d4d2c8;
+    --border-strong: #8a8880;
+    --text: #1a1a1a;
+    --text-muted: #4a4a48;
+    --text-faint: #7a7a78;
+
+    --danger: #c0392b;
+    --danger-bg: #fde4e1;
+    --danger-text: #7a1f15;
+
+    --success: #1e8449;
+    --success-bg: #d6f0e0;
+    --success-text: #0f5028;
+
+    --warning: #b9770e;
+    --warning-bg: #fde9c9;
+    --warning-text: #5e3c06;
+
+    --info: #1f4e8c;
+    --info-bg: #d6e4f5;
+    --info-text: #0f2e5c;
+
+    --purple: #5b3fb8;
+    --purple-bg: #e2dcf7;
+    --purple-text: #2d1d6e;
+
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141414;
+      --surface: #1f1f1f;
+      --surface-2: #2a2a2a;
+      --border: #3a3a3a;
+      --border-strong: #6a6a6a;
+      --text: #f5f5f5;
+      --text-muted: #c0c0c0;
+      --text-faint: #909090;
+
+      --danger: #e74c3c;
+      --danger-bg: #4a1a14;
+      --danger-text: #fca59c;
+
+      --success: #2ecc71;
+      --success-bg: #143d23;
+      --success-text: #8eecb0;
+
+      --warning: #f39c12;
+      --warning-bg: #4a2e08;
+      --warning-text: #fcc985;
+
+      --info: #3498db;
+      --info-bg: #102a4a;
+      --info-text: #8cc4f0;
+
+      --purple: #8b6fdc;
+      --purple-bg: #2a1f5c;
+      --purple-text: #c8b8f5;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    text-align: left;
+  }
+
+  .stat .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat .value {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .stat.danger {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+    border-width: 2px;
+  }
+  .stat.danger .label, .stat.danger .value { color: var(--danger-text); }
+
+  .stat.success {
+    background: var(--success-bg);
+    border-color: var(--success);
+  }
+  .stat.success .label, .stat.success .value { color: var(--success-text); }
+
+  .stat.big .value { font-size: 28px; }
+
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  input, select, button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    height: 40px;
+    font-weight: 500;
+  }
+
+  input::placeholder { color: var(--text-faint); }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--info);
+    box-shadow: 0 0 0 3px var(--info-bg);
+  }
+
+  button {
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 600;
+  }
+
+  button:hover { background: var(--surface-2); }
+  button:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+    width: 100%;
+    font-weight: 700;
+  }
+  .btn-primary:hover {
+    background: var(--text);
+    opacity: 0.88;
+    color: var(--bg);
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-btn {
+    font-size: 13px;
+    padding: 7px 14px;
+    height: auto;
+    font-weight: 600;
+  }
+
+  .filter-btn.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+
+  .btn-export {
+    background: var(--info);
+    color: white;
+    border-color: var(--info);
+  }
+  .btn-export:hover { background: var(--info); opacity: 0.88; color: white; }
+
+  .btn-danger {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: var(--danger);
+  }
+  .btn-danger:hover { background: var(--danger); color: white; }
+
+  .spacer { margin-left: auto; }
+
+  .entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .entry {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 130px 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .entry:hover { border-color: var(--border-strong); }
+
+  .badge {
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    border: 1.5px solid transparent;
+  }
+
+  .badge.red { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger); }
+  .badge.green { background: var(--success-bg); color: var(--success-text); border-color: var(--success); }
+  .badge.amber { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning); }
+  .badge.purple { background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple); }
+  .badge.gray { background: var(--surface-2); color: var(--text-muted); border-color: var(--border-strong); }
+
+  .entry-info { min-width: 0; }
+
+  .entry-desc {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .entry-date {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--text-faint);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .entry-amount {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    min-width: 100px;
+  }
+
+  .entry-amount.profit { color: var(--success); }
+  .entry-amount.expense { color: var(--danger); }
+
+  .del-btn {
+    font-size: 16px;
+    padding: 0;
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 400;
+    border-color: var(--border);
+  }
+
+  .del-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: var(--danger);
+  }
+
+  .empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-faint);
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  .breakdown {
+    margin-top: 2rem;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+  }
+
+  .breakdown-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 110px;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown-row:last-child { border-bottom: none; }
+
+  .breakdown-label {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .breakdown-bar {
+    height: 12px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .breakdown-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s ease;
+  }
+
+  .breakdown-fill.red { background: var(--danger); }
+  .breakdown-fill.green { background: var(--success); }
+  .breakdown-fill.amber { background: var(--warning); }
+  .breakdown-fill.purple { background: var(--purple); }
+  .breakdown-fill.gray { background: var(--text-muted); }
+
+  .breakdown-amount {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  footer {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1.5px solid var(--border);
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+    font-weight: 500;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 1rem 0.75rem; }
+    header h1 { font-size: 22px; }
+    .stat .value { font-size: 18px; }
+    .stat.big .value { font-size: 22px; }
+    .entry {
+      grid-template-columns: 100px 1fr auto;
+      gap: 10px;
+      position: relative;
+      padding-right: 40px;
+    }
+    .entry .del-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      height: 26px;
+      width: 26px;
+      min-width: 26px;
+    }
+    .breakdown-row {
+      grid-template-columns: 100px 1fr 90px;
+      gap: 10px;
+    }
+    .badge { font-size: 10px; padding: 4px 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Stock Market Expense Tracker</h1>
+    <p>Track every rupee — losses, charges, courses, and any other money spent.</p>
+  </header>
+
+  <div class="summary-grid">
+    <div class="stat danger big">
+      <p class="label">Total Burned</p>
+      <p class="value" id="total-burned">₹0</p>
+    </div>
+    <div class="stat">
+      <p class="label">Trading Losses</p>
+      <p class="value" id="total-losses">₹0</p>
+    </div>
+    <div class="stat">
+      <p class="label">Charges &amp; Fees</p>
+      <p class="value" id="total-charges">₹0</p>
+    </div>
+    <div class="stat">
+      <p class="label">Education</p>
+      <p class="value" id="total-education">₹0</p>
+    </div>
+    <div class="stat success">
+      <p class="label">Profits Earned</p>
+      <p class="value" id="total-profits">₹0</p>
+    </div>
+    <div class="stat">
+      <p class="label">Net Position</p>
+      <p class="value" id="net-position">₹0</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Add New Entry</p>
+    <div class="form-grid">
+      <input type="date" id="entry-date" />
+      <select id="entry-category">
+        <option value="loss">Trading loss</option>
+        <option value="profit">Trading profit</option>
+        <option value="brokerage">Brokerage charges</option>
+        <option value="stt">STT / govt taxes</option>
+        <option value="gst">GST / stamp duty</option>
+        <option value="dpcharge">DP / demat charges</option>
+        <option value="course">Course fees</option>
+        <option value="webinar">Webinar / seminar</option>
+        <option value="subscription">Tools / subscriptions</option>
+        <option value="books">Books / materials</option>
+        <option value="advisory">Advisory / tips</option>
+        <option value="other">Other expense</option>
+      </select>
+      <input type="text" id="entry-desc" placeholder="Description (e.g. Reliance trade)" />
+      <input type="number" id="entry-amount" placeholder="Amount (₹)" step="0.01" min="0" />
+    </div>
+    <button class="btn-primary" id="add-btn">+ Add Entry</button>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="loss">Losses</button>
+    <button class="filter-btn" data-filter="profit">Profits</button>
+    <button class="filter-btn" data-filter="charges">Charges</button>
+    <button class="filter-btn" data-filter="education">Education</button>
+    <button class="filter-btn btn-export spacer" id="pdf-btn">↓ PDF</button>
+    <button class="filter-btn" id="export-btn">↓ CSV</button>
+    <button class="filter-btn" id="import-btn">↑ Import</button>
+    <input type="file" id="import-file" accept=".csv" style="display:none" />
+    <button class="filter-btn btn-danger" id="clear-btn">Clear</button>
+  </div>
+
+  <div id="entries-list" class="entries"></div>
+
+  <div id="empty-state" class="empty">
+    No entries yet. Add your first expense above.
+  </div>
+
+  <div id="breakdown-section" class="breakdown" style="display:none">
+    <p class="card-title">Breakdown by Category</p>
+    <div id="breakdown-list"></div>
+  </div>
+
+  <footer>
+    Data is saved locally in your browser. Use Export PDF or CSV to back up.
+  </footer>
+</div>
+
+<script>
+  const CATEGORIES = {
+    loss: { label: 'Trading Loss', group: 'loss', color: 'red' },
+    profit: { label: 'Trading Profit', group: 'profit', color: 'green' },
+    brokerage: { label: 'Brokerage', group: 'charges', color: 'amber' },
+    stt: { label: 'STT / Taxes', group: 'charges', color: 'amber' },
+    gst: { label: 'GST / Stamp', group: 'charges', color: 'amber' },
+    dpcharge: { label: 'DP / Demat', group: 'charges', color: 'amber' },
+    course: { label: 'Course Fees', group: 'education', color: 'purple' },
+    webinar: { label: 'Webinar', group: 'education', color: 'purple' },
+    subscription: { label: 'Subscription', group: 'education', color: 'purple' },
+    books: { label: 'Books', group: 'education', color: 'purple' },
+    advisory: { label: 'Advisory', group: 'education', color: 'purple' },
+    other: { label: 'Other', group: 'charges', color: 'gray' }
+  };
+
+  const STORAGE_KEY = 'stock-expense-entries-v1';
+  let entries = [];
+  let currentFilter = 'all';
+
+  function loadEntries() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      entries = [];
+    }
+  }
+
+  function saveEntries() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    } catch (e) {
+      alert('Could not save. Storage may be full or disabled.');
+    }
+  }
+
+  function fmt(n) {
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function getTotals() {
+    const totals = { loss: 0, profit: 0, charges: 0, education: 0 };
+    entries.forEach(e => {
+      const group = CATEGORIES[e.category] ? CATEGORIES[e.category].group : 'charges';
+      totals[group] = (totals[group] || 0) + e.amount;
+    });
+    return totals;
+  }
+
+  function render() {
+    const totals = getTotals();
+    const totalBurned = totals.loss + totals.charges + totals.education;
+    const net = totals.profit - totalBurned;
+
+    document.getElementById('total-burned').textContent = fmt(totalBurned);
+    document.getElementById('total-losses').textContent = fmt(totals.loss);
+    document.getElementById('total-charges').textContent = fmt(totals.charges);
+    document.getElementById('total-education').textContent = fmt(totals.education);
+    document.getElementById('total-profits').textContent = fmt(totals.profit);
+
+    const netEl = document.getElementById('net-position');
+    netEl.textContent = (net >= 0 ? '+' : '−') + fmt(Math.abs(net));
+    netEl.style.color = net >= 0 ? 'var(--success)' : 'var(--danger)';
+
+    const list = document.getElementById('entries-list');
+    const empty = document.getElementById('empty-state');
+    const breakdownSection = document.getElementById('breakdown-section');
+
+    let filtered = entries.slice().sort((a, b) => b.date.localeCompare(a.date));
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(e => CATEGORIES[e.category] && CATEGORIES[e.category].group === currentFilter);
+    }
+
+    if (entries.length === 0) {
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      breakdownSection.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    breakdownSection.style.display = 'block';
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty">No entries in this category.</div>';
+    } else {
+      list.innerHTML = filtered.map(e => {
+        const cat = CATEGORIES[e.category] || CATEGORIES.other;
+        const isProfit = cat.group === 'profit';
+        return `
+          <div class="entry">
+            <span class="badge ${cat.color}">${cat.label}</span>
+            <div class="entry-info">
+              <p class="entry-desc">${escapeHtml(e.desc) || '—'}</p>
+              <p class="entry-date">${e.date}</p>
+            </div>
+            <p class="entry-amount ${isProfit ? 'profit' : 'expense'}">${isProfit ? '+' : '−'}${fmt(e.amount)}</p>
+            <button class="del-btn" data-id="${e.id}" title="Delete">×</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const breakdown = {};
+    entries.forEach(e => {
+      const cat = CATEGORIES[e.category] || CATEGORIES.other;
+      const key = cat.label;
+      if (!breakdown[key]) breakdown[key] = { amount: 0, color: cat.color };
+      breakdown[key].amount += e.amount;
+    });
+    const breakdownEntries = Object.entries(breakdown).sort((a, b) => b[1].amount - a[1].amount);
+    const maxAmount = Math.max.apply(null, breakdownEntries.map(b => b[1].amount).concat([1]));
+
+    document.getElementById('breakdown-list').innerHTML = breakdownEntries.map(([label, data]) => {
+      const pct = Math.round((data.amount / maxAmount) * 100);
+      return `
+        <div class="breakdown-row">
+          <span class="breakdown-label">${escapeHtml(label)}</span>
+          <div class="breakdown-bar"><div class="breakdown-fill ${data.color}" style="width:${pct}%"></div></div>
+          <span class="breakdown-amount">${fmt(data.amount)}</span>
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        const id = ev.currentTarget.dataset.id;
+        if (confirm('Delete this entry?')) {
+          entries = entries.filter(e => e.id !== id);
+          saveEntries();
+          render();
+        }
+      });
+    });
+  }
+
+  document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+
+  document.getElementById('add-btn').addEventListener('click', () => {
+    const date = document.getElementById('entry-date').value;
+    const category = document.getElementById('entry-category').value;
+    const desc = document.getElementById('entry-desc').value.trim();
+    const amount = parseFloat(document.getElementById('entry-amount').value);
+
+    if (!date || isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid date and a positive amount.');
+      return;
+    }
+
+    entries.push({
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+      date: date,
+      category: category,
+      desc: desc,
+      amount: amount
+    });
+
+    saveEntries();
+    document.getElementById('entry-desc').value = '';
+    document.getElementById('entry-amount').value = '';
+    document.getElementById('entry-amount').focus();
+    render();
+  });
+
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn[data-filter]').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+      render();
+    });
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (entries.length === 0) return;
+    if (confirm('Delete ALL entries? This cannot be undone. Consider exporting first.')) {
+      entries = [];
+      saveEntries();
+      render();
+    }
+  });
+
+  document.getElementById('export-btn').addEventListener('click', () => {
+    if (entries.length === 0) {
+      alert('No entries to export.');
+      return;
+    }
+    const header = 'Date,Category,Description,Amount\n';
+    const rows = entries.slice().sort((a, b) => b.date.localeCompare(a.date)).map(e => {
+      const desc = (e.desc || '').replace(/"/g, '""');
+      return `${e.date},${e.category},"${desc}",${e.amount}`;
+    }).join('\n');
+    const csv = header + rows;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const today = new Date().toISOString().split('T')[0];
+    a.download = `stock-expenses-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('pdf-btn').addEventListener('click', () => {
+    if (entries.length === 0) {
+      alert('No entries to export.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const today = new Date().toISOString().split('T')[0];
+
+    const fmtPdf = (n) => 'Rs. ' + Math.round(n).toLocaleString('en-IN');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Stock Market Expense Report', 40, 50);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Generated: ' + today, 40, 68);
+
+    const totals = getTotals();
+    const totalBurned = totals.loss + totals.charges + totals.education;
+    const net = totals.profit - totalBurned;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Summary', 40, 100);
+
+    doc.autoTable({
+      startY: 110,
+      head: [['Category', 'Amount']],
+      body: [
+        ['Trading Losses', fmtPdf(totals.loss)],
+        ['Charges & Fees', fmtPdf(totals.charges)],
+        ['Education Expenses', fmtPdf(totals.education)],
+        [{ content: 'TOTAL BURNED', styles: { fontStyle: 'bold' } }, { content: fmtPdf(totalBurned), styles: { fontStyle: 'bold', textColor: [192, 57, 43] } }],
+        ['Profits Earned', fmtPdf(totals.profit)],
+        [{ content: 'NET POSITION', styles: { fontStyle: 'bold' } }, { content: (net >= 0 ? '+' : '-') + fmtPdf(Math.abs(net)), styles: { fontStyle: 'bold', textColor: net >= 0 ? [30, 132, 73] : [192, 57, 43] } }]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', fontSize: 11 },
+      bodyStyles: { fontSize: 11, cellPadding: 8 },
+      columnStyles: {
+        0: { cellWidth: 200 },
+        1: { halign: 'right', cellWidth: 150 }
+      },
+      margin: { left: 40, right: 40 }
+    });
+
+    const breakdown = {};
+    entries.forEach(e => {
+      const cat = CATEGORIES[e.category] || CATEGORIES.other;
+      breakdown[cat.label] = (breakdown[cat.label] || 0) + e.amount;
+    });
+    const breakdownEntries = Object.entries(breakdown).sort((a, b) => b[1] - a[1]);
+    const grandTotal = totalBurned + totals.profit;
+
+    let yPos = doc.lastAutoTable.finalY + 30;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Breakdown by Category', 40, yPos);
+
+    doc.autoTable({
+      startY: yPos + 10,
+      head: [['Category', 'Amount', '% of Total']],
+      body: breakdownEntries.map(([label, amt]) => [
+        label,
+        fmtPdf(amt),
+        grandTotal > 0 ? ((amt / grandTotal) * 100).toFixed(1) + '%' : '0%'
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', fontSize: 11 },
+      bodyStyles: { fontSize: 10, cellPadding: 7 },
+      columnStyles: {
+        0: { cellWidth: 200 },
+        1: { halign: 'right', cellWidth: 130 },
+        2: { halign: 'right', cellWidth: 100 }
+      },
+      margin: { left: 40, right: 40 }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 30;
+    if (yPos > 700) {
+      doc.addPage();
+      yPos = 50;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text('All Entries (' + entries.length + ')', 40, yPos);
+
+    const sortedEntries = entries.slice().sort((a, b) => b.date.localeCompare(a.date));
+
+    doc.autoTable({
+      startY: yPos + 10,
+      head: [['Date', 'Category', 'Description', 'Amount']],
+      body: sortedEntries.map(e => {
+        const cat = CATEGORIES[e.category] || CATEGORIES.other;
+        const isProfit = cat.group === 'profit';
+        return [
+          e.date,
+          cat.label,
+          e.desc || '-',
+          {
+            content: (isProfit ? '+' : '-') + fmtPdf(e.amount),
+            styles: { halign: 'right', textColor: isProfit ? [30, 132, 73] : [192, 57, 43], fontStyle: 'bold' }
+          }
+        ];
+      }),
+      theme: 'striped',
+      headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      bodyStyles: { fontSize: 9, cellPadding: 6 },
+      alternateRowStyles: { fillColor: [248, 248, 245] },
+      columnStyles: {
+        0: { cellWidth: 80 },
+        1: { cellWidth: 110 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 100, halign: 'right' }
+      },
+      margin: { left: 40, right: 40 },
+      didDrawPage: (data) => {
+        const pageNum = data.pageNumber;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          'Stock Expense Report  |  Page ' + pageNum,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 20,
+          { align: 'center' }
+        );
+      }
+    });
+
+    doc.save('stock-expenses-' + today + '.pdf');
+  });
+
+  document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+
+  document.getElementById('import-file').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) {
+          alert('CSV appears empty.');
+          return;
+        }
+        const imported = [];
+        for (let i = 1; i < lines.length; i++) {
+          const match = lines[i].match(/^([^,]+),([^,]+),"((?:[^"]|"")*)",(.+)$/);
+          if (!match) continue;
+          const [, date, category, descRaw, amountStr] = match;
+          const desc = descRaw.replace(/""/g, '"');
+          const amount = parseFloat(amountStr);
+          if (!isNaN(amount) && amount > 0 && CATEGORIES[category]) {
+            imported.push({
+              id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+              date, category, desc, amount
+            });
+          }
+        }
+        if (imported.length === 0) {
+          alert('No valid rows found in CSV.');
+          return;
+        }
+        if (confirm('Import ' + imported.length + ' entries? They will be added to your existing entries.')) {
+          entries = entries.concat(imported);
+          saveEntries();
+          render();
+        }
+      } catch (err) {
+        alert('Failed to read CSV: ' + err.message);
+      }
+      ev.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  loadEntries();
+  render();
+</script>
+</body>
+</html>
